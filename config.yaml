@@ -1,0 +1,119 @@
+# ===========================================================
+#  הגדרות מעקב המחירים – טרקלין חשמל מול המתחרים
+#  אפשר לערוך את הקובץ הזה ישירות באתר של GitHub (אייקון העיפרון)
+# ===========================================================
+
+run:
+  # 0 = כל המוצרים. מספר קטן (למשל 30) טוב לריצת ניסיון מהירה
+  max_products: 0
+  # עצירה בטוחה לפני מגבלת 6 השעות של GitHub (בדקות)
+  max_runtime_minutes: 320
+  # מוצר שלא נמצא אצל מתחרה – לחפש אותו שוב רק אחרי כמה ימים (חוסך זמן ריצה)
+  recheck_not_found_days: 7
+  # כמה מוצרים לנסות לפני שמכריזים שאתר "לא עובד" בריצה הנוכחית
+  site_probe_products: 25
+
+matching:
+  # גם דגם "קרוב" (למשל UE75U8000FUXIL מול UE75U8000HUXIL) יופיע, מסומן כ"דגם דומה"
+  allow_similar_models: true
+  similarity_threshold: 0.86
+
+report:
+  # כמה שורות להציג בגוף המייל בכל טבלה (הדוח המלא תמיד באקסל המצורף)
+  top_rows_in_email: 15
+  # שינוי מחיר קטן מזה (באחוזים) לא ייחשב כשינוי
+  min_change_percent: 0.5
+
+traklin:
+  name: "טרקלין חשמל"
+  base_url: "https://www.traklin.co.il"
+  # מפת האתר מכילה את רוב המוצרים
+  sitemap_pages:
+    - "/sitemap.aspx"
+  # כגיבוי – סריקת עמודי הקטגוריות הראשיים
+  category_seeds:
+    - "/מוצרי_אלקטרוניקה"
+    - "/לבית_ולגן"
+    - "/מוצרי_מיזוג_וחימום_לבית"
+    - "/בישול_ואפייה"
+    - "/מוצרי_חשמל_למטבח"
+    - "/מקררים_ומקפיאים"
+    - "/נקיון_וכביסה"
+    - "/מוצרי_טיפוח_ועיצוב"
+    - "/גיימינג_וסלולר"
+  concurrency: 3
+  delay_seconds: 0.4
+
+# -----------------------------------------------------------
+#  המתחרים. enabled: false מכבה אתר.
+#  type: generic = חיפוש באתר + קריאת עמוד המוצר (זיהוי אוטומטי)
+#  type: ksp     = ממשק הנתונים של KSP
+#  search_templates: כתובות חיפוש לנסות לפי הסדר ({q} = הדגם).
+#  אם לא מצליח – הסקריפט מנסה לגלות את כתובת החיפוש לבד מדף הבית.
+#  price_css / old_price_css / promo_css: אופציונלי, לכיול ידני אם צריך
+# -----------------------------------------------------------
+stores:
+  - key: payngo
+    name: "מחסני חשמל"
+    type: generic
+    base_url: "https://www.payngo.co.il"
+    search_templates:
+      - "/catalogsearch/result/?q={q}"
+      - "/search?q={q}"
+    enabled: true
+
+  - key: ksp
+    name: "KSP"
+    type: ksp
+    base_url: "https://ksp.co.il"
+    enabled: true
+
+  - key: alm
+    name: "א.ל.מ"
+    type: generic
+    base_url: "https://www.alm.co.il"
+    search_templates:
+      - "/catalogsearch/result/?q={q}"
+      - "/search?q={q}"
+    enabled: true
+
+  - key: ivory
+    name: "אייבורי"
+    type: generic
+    base_url: "https://www.ivory.co.il"
+    search_templates:
+      - "/catalog.php?act=cat&q={q}"
+      - "/search?q={q}"
+    enabled: true
+
+  - key: bug
+    name: "באג"
+    type: generic
+    base_url: "https://www.bug.co.il"
+    search_templates:
+      - "/search?q={q}"
+      - "/?s={q}"
+    enabled: true
+
+  - key: bigelectric
+    name: "ביג אלקטריק"
+    type: generic
+    base_url: "https://www.big-electric.co.il"
+    search_templates:
+      - "/?s={q}&post_type=product"
+      - "/search?q={q}"
+    enabled: true
+
+  - key: lastprice
+    name: "לאסט פרייס"
+    type: generic
+    base_url: "https://www.lastprice.co.il"
+    search_templates:
+      - "/search?q={q}"
+      - "/catalogsearch/result/?q={q}"
+    enabled: true
+
+# ברירות מחדל לכל המתחרים (אפשר לדרוס בכל חנות)
+store_defaults:
+  concurrency: 2
+  delay_seconds: 1.0
