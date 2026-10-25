@@ -1,0 +1,78 @@
+name: דוח מחירים יומי
+
+on:
+  schedule:
+    # Every day at 03:17 UTC (≈05:17 Israel in winter, 06:17 in summer).
+    # The report usually lands 1–2.5 hours later. GitHub may start scheduled runs a bit late.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "מה להריץ"
+        type: choice
+        options:
+          - run          # ריצה מלאה ושליחת מייל
+          - test-email   # מייל לדוגמה, לבדיקת ההגדרות (דקה)
+          - calibrate    # אבחון: שומר צילומי HTML מכל אתר
+        default: run
+      max_products:
+        description: "ריצת ניסיון על מספר מוצרים מוגבל (ריק = הכל). ריצת ניסיון לא שומרת היסטוריה"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: price-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: התקנת ספריות
+        run: pip install -r requirements.txt
+
+      - name: הרצה
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          MODE: ${{ inputs.mode || 'run' }}
+          MAX_PRODUCTS: ${{ inputs.max_products }}
+        run: |
+          ARGS=""
+          if [ -n "$MAX_PRODUCTS" ]; then ARGS="--max-products $MAX_PRODUCTS"; fi
+          python -m monitor "$MODE" $ARGS
+
+      - name: שמירת הדוח וקבצי האבחון להורדה
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-${{ github.run_number }}
+          path: |
+            output/
+            debug/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: שמירת היסטוריית המחירים במאגר
+        if: success() && (inputs.mode || 'run') == 'run' && !inputs.max_products
+        run: |
+          git config user.name "price-monitor-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --cached --quiet; then echo "no data changes"; exit 0; fi
+          git commit -m "נתוני מחירים $(date -u +%Y-%m-%d)"
+          for i in 1 2 3; do git pull --rebase -X theirs && git push && break; sleep 5; done
